@@ -35,7 +35,14 @@ colors = [black]
 balls = []
 noBalls = 1
 radius = 10
-friction = 0.05
+friction = 0.1
+bounce = 0.9
+Pvalue = 0
+Ivalue = 0
+Dvalue = 0
+Kp = 0.2
+Ki = 0
+Kd = 0
 
 # Ball Class
 class Ball:
@@ -74,17 +81,17 @@ class Ball:
 
 
         if not (self.x < width - radius - margin):
-            self.x = width - radius - margin
-            self.angle = 180 - self.angle
+            self.xv = -self.xv * bounce
+
         if not(radius + margin < self.x):
-            self.x = radius + margin
-            self.angle = 180 - self.angle
+            self.xv = -self.xv * bounce
+
         if not (self.y < height - radius - margin):
-            self.y = height - radius - margin
-            self.angle = 360 - self.angle
+            self.yv = -self.yv * bounce
+
         if not(radius + margin < self.y):
-            self.y = radius + margin
-            self.angle = 360 - self.angle
+            self.yv = -self.yv * bounce
+
 
 
 
@@ -99,8 +106,8 @@ class CueStick:
 
     # Applies force to Cue Ball
     def applyForce(self, cueBall, force):
-        cueBall.xv += cos(radians(self.angle))
-        cueBall.yv += sin(radians(self.angle))
+        cueBall.xv += (cueBall.x - self.x)/50
+        cueBall.yv += (cueBall.y - self.y)/50
         #cueBall.angle = self.tangent
         #cueBall.speed = force
 
@@ -116,8 +123,15 @@ class CueStick:
         #cueBall.angle = -(degrees((atan2((((cueBall.y) - (cueBall.oldy))), (((cueBall.x) - (cueBall.oldx))))) - (atan2((cuex - 400), (cuey - 400)))))
         #forceOfGrav = forceOfGrav/10
         #cueBall.speed = sqrt((cueBall.speed**2+2*cueBall.speed*forceOfGrav*cos(cueBall.angle)+forceOfGrav**2))
-        slidex = .05
-        slidey = .01
+        if(self.x > 400):
+            slidex = -((self.x)/400)*Pgain
+        else:
+            slidex = ((self.x)/400)*Pgain
+        if (self.y > 400):
+            slidey = -((self.y)/400)*Pgain
+        else:
+            slidey = ((self.y)/400)*Pgain
+
         cueBall.xv += slidex
         cueBall.yv += slidey
 
@@ -146,7 +160,7 @@ def poolTable():
     loop = True
 
     #cueBall = Ball(width/2, height/2, 0, 0, 0, white, 0, "cue")
-    cueBall = Ball(200, 200, 0, 0, 0, 0, 0, white, 0, "cue")
+    cueBall = Ball(200, 400, 0, 0, 0, 0, 0, white, 0, "cue")
     cueStick = CueStick(0, 0, 100, stickColor)
 
 
