@@ -40,13 +40,14 @@ bounce = 0.9
 Pvalue = 0
 Ivalue = 0
 Dvalue = 0
-Kp = 0.2
-Ki = 0
-Kd = 0
+Kp = 0.001
+Ki = 0.0001
+Kd = 0.00001
+
 
 # Ball Class
 class Ball:
-    def __init__(self, x, y, oldy, oldx, xv, yv, speed, color, angle, ballNum):
+    def __init__(self, x, y, oldy, oldx, xv, yv, speed, color, angle, ballNum, errorx, errory, errorpx, errorpy, errxsum, errysum):
         self.x = x
         self.y = y
         self.oldy = oldy
@@ -58,6 +59,14 @@ class Ball:
         self.speed = speed
         self.ballNum = ballNum
         self.font = pygame.font.SysFont("Agency FB", 10)
+        self.errorx = 0.0
+        self.errory = 0.0
+        self.errorpx = 0.0
+        self.errorpy = 0.0
+        self.slidex = 0.0
+        self.slidey = 0.0
+        self.errxsum = 0.0
+        self.errysum = 0.0
 
     # Draws Balls on Display Window
     def draw(self, x, y):
@@ -123,17 +132,20 @@ class CueStick:
         #cueBall.angle = -(degrees((atan2((((cueBall.y) - (cueBall.oldy))), (((cueBall.x) - (cueBall.oldx))))) - (atan2((cuex - 400), (cuey - 400)))))
         #forceOfGrav = forceOfGrav/10
         #cueBall.speed = sqrt((cueBall.speed**2+2*cueBall.speed*forceOfGrav*cos(cueBall.angle)+forceOfGrav**2))
-        if(self.x > 400):
-            slidex = -((self.x)/400)*Pgain
-        else:
-            slidex = ((self.x)/400)*Pgain
-        if (self.y > 400):
-            slidey = -((self.y)/400)*Pgain
-        else:
-            slidey = ((self.y)/400)*Pgain
 
-        cueBall.xv += slidex
-        cueBall.yv += slidey
+        cueBall.errorpx = cueBall.errorx
+        cueBall.errorpy = cueBall.errory
+        cueBall.errorx = self.x - 400
+        cueBall.errory = self.y - 400
+
+        slidex = Kp*(cueBall.errorx) + Kd*(cueBall.errorpx) + Ki*(cueBall.errxsum)
+        slidey = Kp*(cueBall.errory) + Kd*(cueBall.errorpy) + Ki*(cueBall.errysum)
+
+        cueBall.errxsum += cueBall.errorx
+        cueBall.errysum += cueBall.errory
+
+        cueBall.xv -= slidex
+        cueBall.yv -= slidey
 
 
     # Draws Force Stick on Pygame Window
@@ -160,7 +172,7 @@ def poolTable():
     loop = True
 
     #cueBall = Ball(width/2, height/2, 0, 0, 0, white, 0, "cue")
-    cueBall = Ball(200, 400, 0, 0, 0, 0, 0, white, 0, "cue")
+    cueBall = Ball(200, 400, 0, 0, 0, 0, 0, white, 0, "cue", 0, 0, 0, 0, 0, 0)
     cueStick = CueStick(0, 0, 100, stickColor)
 
 
