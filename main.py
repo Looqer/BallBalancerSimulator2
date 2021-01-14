@@ -1,5 +1,7 @@
 import pygame
 import sys
+import time
+
 from math import *
 from pygame import Color, Rect, Surface
 
@@ -11,6 +13,7 @@ height = 800
 outerHeight = 800
 margin = 20
 display = pygame.display.set_mode((width, outerHeight))
+end_time = time.time() + 5
 
 #game_surf = pygame.Surface((width, height))
 trace = pygame.Surface(display.get_size())
@@ -27,6 +30,7 @@ background = (50, 50, 50)
 white = (236, 240, 241)
 gray = (123, 125, 125)
 black = (23, 32, 42)
+red = (255, 0, 0)
 stickColor = (249, 231, 159)
 gravityColor = (100, 0 ,100)
 
@@ -41,8 +45,8 @@ Pvalue = 0
 Ivalue = 0
 Dvalue = 0
 Kp = 0.001
-Ki = 0.0001
-Kd = 0.00001
+Ki = 0
+Kd = 0.04
 
 
 # Ball Class
@@ -67,6 +71,9 @@ class Ball:
         self.slidey = 0.0
         self.errxsum = 0.0
         self.errysum = 0.0
+        self.destX = 0
+        self.destY = 0
+
 
     # Draws Balls on Display Window
     def draw(self, x, y):
@@ -101,6 +108,24 @@ class Ball:
         if not(radius + margin < self.y):
             self.yv = -self.yv * bounce
 
+        print(self.errorx)
+
+    def destinationWheel(self):
+        self.destX = (cos(time.time()*4)+3.14) *100
+        self.destY = (sin(time.time()*4)+3.14) *100
+
+
+        if self.destX >= 800:
+            self.destX = 800
+        if self.destX <= 0:
+            self.destX = 0
+        if self.destY >= 800:
+            self.destY = 800
+        if self.destY <= 0:
+            self.destY = 0
+
+        #(time.time())
+        #print(self.destX)
 
 
 
@@ -128,24 +153,36 @@ class CueStick:
         pygame.draw.line(display, self.color, (self.x, self.y), (cuex, cuey), 3)
 
     # Applies gravity force to Cue Ball
-    def applyGrav(self, cueBall, forceOfGrav, cuex, cuey):
+    def applyGrav(self, cueBall, levelBallX, levelBallY, forceOfGrav, cuex, cuey):
         #cueBall.angle = -(degrees((atan2((((cueBall.y) - (cueBall.oldy))), (((cueBall.x) - (cueBall.oldx))))) - (atan2((cuex - 400), (cuey - 400)))))
         #forceOfGrav = forceOfGrav/10
         #cueBall.speed = sqrt((cueBall.speed**2+2*cueBall.speed*forceOfGrav*cos(cueBall.angle)+forceOfGrav**2))
 
         cueBall.errorpx = cueBall.errorx
         cueBall.errorpy = cueBall.errory
-        cueBall.errorx = self.x - 400
-        cueBall.errory = self.y - 400
+        cueBall.errorx = self.x - cueBall.destX
+        cueBall.errory = self.y - cueBall.destY
 
-        slidex = Kp*(cueBall.errorx) + Kd*(cueBall.errorpx) + Ki*(cueBall.errxsum)
-        slidey = Kp*(cueBall.errory) + Kd*(cueBall.errorpy) + Ki*(cueBall.errysum)
+        slidex = Kp*(cueBall.errorx) + Kd*(cueBall.errorx - cueBall.errorpx) + Ki*(cueBall.errxsum)
+        if slidex > 0.5:
+            slidex = 0.5
+        if slidex < -0.5:
+            slidex = -0.5
+
+        slidey = Kp*(cueBall.errory) + Kd*(cueBall.errory - cueBall.errorpy) + Ki*(cueBall.errysum)
+        if slidey > 0.5:
+            slidey = 0.5
+        if slidey < -0.5:
+            slidey = -0.5
 
         cueBall.errxsum += cueBall.errorx
         cueBall.errysum += cueBall.errory
 
         cueBall.xv -= slidex
         cueBall.yv -= slidey
+
+        levelBallX.x = -slidex*(400/0.5)+400
+        levelBallY.y = -slidey*(400/0.5)+400
 
 
     # Draws Force Stick on Pygame Window
@@ -171,12 +208,23 @@ def close():
 def poolTable():
     loop = True
 
+
+
     #cueBall = Ball(width/2, height/2, 0, 0, 0, white, 0, "cue")
-    cueBall = Ball(200, 400, 0, 0, 0, 0, 0, white, 0, "cue", 0, 0, 0, 0, 0, 0)
+    cueBall = Ball(700, 700, 0, 0, -15, 0, 0, white, 0, "cue", 0, 0, 0, 0, 0, 0)
     cueStick = CueStick(0, 0, 100, stickColor)
 
+    levelBallX = Ball(400, 0, 0, 0, 0, 0, 0, red, 0, "cue", 0, 0, 0, 0, 0, 0)
+    levelBallY = Ball(0, 400, 0, 0, 0, 0, 0, red, 0, "cue", 0, 0, 0, 0, 0, 0)
 
     while loop:
+
+        cueBall.destinationWheel()
+        print(cueBall.errorx)
+
+
+
+
         forceLength = ((cueBall.x - 400) ** 2 + (cueBall.y - 400) ** 2) ** 0.5
         gravityStick = CueStick(0, 20, forceLength, gravityColor)
         for event in pygame.event.get():
@@ -208,7 +256,11 @@ def poolTable():
         display.blit(trace, (0, 0))
 
         cueBall.draw(cueBall.x, cueBall.y)
+        levelBallX.draw(levelBallX.x, levelBallX.y)
+        levelBallY.draw(levelBallY.x, levelBallY.y)
+
         cueBall.move()
+
 
 
         if not (cueBall.speed < 0):
@@ -218,7 +270,7 @@ def poolTable():
 
         #print(gravityStick.length)
 
-        gravityStick.applyGrav(cueBall, gravityStick.length, cueBall.x, cueBall.y)
+        gravityStick.applyGrav(cueBall, levelBallX, levelBallY, gravityStick.length, cueBall.x, cueBall.y)
 
         for i in range(len(balls)):
             balls[i].draw(balls[i].x, balls[i].y)
