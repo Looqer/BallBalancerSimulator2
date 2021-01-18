@@ -1,6 +1,7 @@
 import pygame
 import sys
 import time
+import matplotlib.pyplot as plt
 
 from math import *
 from pygame import Color, Rect, Surface
@@ -12,7 +13,7 @@ width = 800
 height = 800
 outerHeight = 800
 margin = 20
-display = pygame.display.set_mode((width, outerHeight))
+display = pygame.display.set_mode((width, height))
 end_time = time.time() + 5
 
 #game_surf = pygame.Surface((width, height))
@@ -31,6 +32,7 @@ white = (236, 240, 241)
 gray = (123, 125, 125)
 black = (23, 32, 42)
 red = (255, 0, 0)
+green = (0, 255, 0)
 stickColor = (249, 231, 159)
 gravityColor = (100, 0 ,100)
 
@@ -47,6 +49,7 @@ Dvalue = 0
 Kp = 0.001
 Ki = 0
 Kd = 0.04
+
 
 
 # Ball Class
@@ -140,8 +143,8 @@ class CueStick:
 
     # Applies force to Cue Ball
     def applyForce(self, cueBall, force):
-        cueBall.xv += (cueBall.x - self.x)/50
-        cueBall.yv += (cueBall.y - self.y)/50
+        cueBall.xv += (cueBall.x - self.x)/10
+        cueBall.yv += (cueBall.y - self.y)/10
         #cueBall.angle = self.tangent
         #cueBall.speed = force
 
@@ -153,7 +156,7 @@ class CueStick:
         pygame.draw.line(display, self.color, (self.x, self.y), (cuex, cuey), 3)
 
     # Applies gravity force to Cue Ball
-    def applyGrav(self, cueBall, levelBallX, levelBallY, forceOfGrav, cuex, cuey):
+    def applyGrav(self, cueBall, levelBallX, levelBallY, destBall, forceOfGrav, cuex, cuey):
         #cueBall.angle = -(degrees((atan2((((cueBall.y) - (cueBall.oldy))), (((cueBall.x) - (cueBall.oldx))))) - (atan2((cuex - 400), (cuey - 400)))))
         #forceOfGrav = forceOfGrav/10
         #cueBall.speed = sqrt((cueBall.speed**2+2*cueBall.speed*forceOfGrav*cos(cueBall.angle)+forceOfGrav**2))
@@ -195,27 +198,33 @@ class CueStick:
 
 
 def border():
-    pygame.draw.rect(display, gray, (0, 0, width, 30))
-    pygame.draw.rect(display, gray, (0, 0, 30, height))
-    pygame.draw.rect(display, gray, (width - 30, 0, width, height))
-    pygame.draw.rect(display, gray, (0, height - 30, width, height))
+    #pygame.draw.rect(display, gray, (0, 0, 1900, 0))
+    #pygame.draw.rect(display, gray, (0, 0, 30, height))
+    #pygame.draw.rect(display, gray, (width - 30, 0, 1900, height))
+    #pygame.draw.rect(display, gray, (0, height - 30, 1900, height))
+    pygame.draw.rect(display, (0, 100, 255), (0, 0, 800, 800), 3)
 
 def close():
     pygame.quit()
     sys.exit()
 
+
 # Main Function
 def poolTable():
+    counter = 0
+    tablicapolozenie = []
+    tablicaerror = []
+    tablicacel = []
+    tcounter = []
     loop = True
-
-
-
     #cueBall = Ball(width/2, height/2, 0, 0, 0, white, 0, "cue")
     cueBall = Ball(700, 700, 0, 0, -15, 0, 0, white, 0, "cue", 0, 0, 0, 0, 0, 0)
     cueStick = CueStick(0, 0, 100, stickColor)
 
     levelBallX = Ball(400, 0, 0, 0, 0, 0, 0, red, 0, "cue", 0, 0, 0, 0, 0, 0)
     levelBallY = Ball(0, 400, 0, 0, 0, 0, 0, red, 0, "cue", 0, 0, 0, 0, 0, 0)
+
+    destBall = Ball(400, 0, 0, 0, 0, 0, 0, green, 0, "cue", 0, 0, 0, 0, 0, 0)
 
     while loop:
 
@@ -256,6 +265,7 @@ def poolTable():
         display.blit(trace, (0, 0))
 
         cueBall.draw(cueBall.x, cueBall.y)
+        destBall.draw(cueBall.destX, cueBall.destY)
         levelBallX.draw(levelBallX.x, levelBallX.y)
         levelBallY.draw(levelBallY.x, levelBallY.y)
 
@@ -270,7 +280,7 @@ def poolTable():
 
         #print(gravityStick.length)
 
-        gravityStick.applyGrav(cueBall, levelBallX, levelBallY, gravityStick.length, cueBall.x, cueBall.y)
+        gravityStick.applyGrav(cueBall, levelBallX, levelBallY, destBall, gravityStick.length, cueBall.x, cueBall.y)
 
         for i in range(len(balls)):
             balls[i].draw(balls[i].x, balls[i].y)
@@ -278,9 +288,25 @@ def poolTable():
         for i in range(len(balls)):
            balls[i].move()
 
-        #border()  #obramowanie (na razie zostawic)
+        border()  #obramowanie (na razie zostawic)
 
 
+        counter += 1
+        tcounter.append(counter)
+        tablicapolozenie.append(cueBall.x)
+        tablicaerror.append(cueBall.errorx)
+        tablicacel.append(cueBall.destX)
+        print (counter)
+        print(tablicapolozenie)
+
+        if counter > 1000:
+
+            plt.plot(tablicapolozenie)
+            plt.plot(tablicaerror)
+            plt.plot(tablicacel)
+
+            plt.show()
+            close()
 
         pygame.display.update()
         clock.tick(60)
