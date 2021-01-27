@@ -50,6 +50,16 @@ Kp = 0.001
 Ki = 0
 Kd = 0.04
 
+FUZZYX = 1
+Fclosex = 0
+Fmediumx = 0
+Ffarx = 0
+
+FUZZYY = 1
+Fclosey = 0
+Fmediumy = 0
+Ffary = 0
+
 
 
 # Ball Class
@@ -94,8 +104,8 @@ class Ball:
         self.oldy = self.y
 
 
-        self.x = self.x + self.xv #+ self.speed*cos(radians(self.angle))
-        self.y = self.y + self.yv #+ self.speed*sin(radians(self.angle))
+        self.x = self.x + self.xv
+        self.y = self.y + self.yv
 
 
 
@@ -111,7 +121,7 @@ class Ball:
         if not(radius + margin < self.y):
             self.yv = -self.yv * bounce
 
-        print(self.errorx)
+
 
     def destinationWheel(self):
         self.destX = (cos(time.time()*4)+3.14) *100
@@ -166,13 +176,56 @@ class CueStick:
         cueBall.errorx = self.x - cueBall.destX
         cueBall.errory = self.y - cueBall.destY
 
-        slidex = Kp*(cueBall.errorx) + Kd*(cueBall.errorx - cueBall.errorpx) + Ki*(cueBall.errxsum)
+        if(50>abs(cueBall.errorx)>0):
+            Fclosex = -abs(cueBall.errorx)*2+100
+        else:
+            Fclosex = 0
+
+        if (100 > abs(cueBall.errorx) > 50):
+            Fmediumx = abs(cueBall.errorx) * 2 - 100
+        elif (150 > abs(cueBall.errorx) > 100):
+            Fmediumx = -abs(cueBall.errorx) * 2 + 300
+        else:
+            Fmediumx = 0
+
+        if (200 > abs(cueBall.errorx) > 150):
+            Ffarx = abs(cueBall.errorx) * 2 - 300
+        elif (abs(cueBall.errorx) > 200):
+            Ffarx = 1
+        else:
+            Ffarx = 0
+
+        FUZZYX = 0.5*Fclosex + Fmediumx +2 * Ffarx
+
+        slidex = FUZZYX*(Kp*(cueBall.errorx) + Kd*(cueBall.errorx - cueBall.errorpx) + Ki*(cueBall.errxsum))
         if slidex > 0.5:
             slidex = 0.5
         if slidex < -0.5:
             slidex = -0.5
 
-        slidey = Kp*(cueBall.errory) + Kd*(cueBall.errory - cueBall.errorpy) + Ki*(cueBall.errysum)
+        if (50 > abs(cueBall.errory) > 0):
+            Fclosey = -abs(cueBall.errory) * 2 + 100
+        else:
+            Fclosey = 0
+
+        if (100 > abs(cueBall.errory) > 50):
+            Fmediumy = abs(cueBall.errory) * 2 - 100
+        elif (150 > abs(cueBall.errory) > 100):
+            Fmediumy = -abs(cueBall.errory) * 2 + 300
+        else:
+            Fmediumy = 0
+
+        if (200 > abs(cueBall.errory) > 150):
+            Ffary = abs(cueBall.errory) * 2 - 300
+        elif (abs(cueBall.errory) > 200):
+            Ffary = 1
+        else:
+            Ffary = 0
+
+        FUZZYY = 0.5 * Fclosey + Fmediumy + 2 * Ffary
+        print(FUZZYY)
+
+        slidey = FUZZYY*(Kp*(cueBall.errory) + Kd*(cueBall.errory - cueBall.errorpy) + Ki*(cueBall.errysum))
         if slidey > 0.5:
             slidey = 0.5
         if slidey < -0.5:
@@ -229,7 +282,7 @@ def poolTable():
     while loop:
 
         cueBall.destinationWheel()
-        print(cueBall.errorx)
+
 
 
 
@@ -296,10 +349,9 @@ def poolTable():
         tablicapolozenie.append(cueBall.x)
         tablicaerror.append(cueBall.errorx)
         tablicacel.append(cueBall.destX)
-        print (counter)
-        print(tablicapolozenie)
 
-        if counter > 1000:
+
+        if counter > 500:
 
             plt.plot(tablicapolozenie)
             plt.plot(tablicaerror)
