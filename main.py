@@ -4,9 +4,6 @@ import time
 import matplotlib.pyplot as plt
 
 from math import *
-from pygame import Color, Rect, Surface
-
-from pygame import gfxdraw
 
 pygame.init()
 width = 800
@@ -62,15 +59,20 @@ Ffary = 0
 
 
 
-# Ball Class
 class Ball:
-    def __init__(self, x, y, oldy, oldx, xv, yv, speed, color, angle, ballNum, errorx, errory, errorpx, errorpy, errxsum, errysum):
+    def __init__(self, x, y, oldy, oldx, xv, yv, xa, ya, xF, yF, mass, grav, speed, color, angle, ballNum, errorx, errory, errorpx, errorpy, errxsum, errysum):
         self.x = x
         self.y = y
         self.oldy = oldy
         self.oldx = oldx
         self.xv = xv
         self.yv = yv
+        self.xa = xa
+        self.ya = ya
+        self.xF = xF
+        self.yF = yF
+        self.mass = 1
+        self.grav = 9.81
         self.color = color
         self.angle = angle
         self.speed = speed
@@ -95,39 +97,42 @@ class Ball:
 
     # Moves the Ball around the Screen
     def move(self):
-        self.speed -= (self.speed)/30 #friction
+
+        #friction
+        self.speed -= (self.speed)/30
+
+        #stop if movement is slow
         if self.speed <= .1:
             self.speed = 0
 
-
+        #save last step position values
         self.oldx = self.x
         self.oldy = self.y
 
-
+        #change position with velocity
         self.x = self.x + self.xv
         self.y = self.y + self.yv
 
-
-
+        #bouncing
         if not (self.x < width - radius - margin):
             self.xv = -self.xv * bounce
-
         if not(radius + margin < self.x):
             self.xv = -self.xv * bounce
-
         if not (self.y < height - radius - margin):
             self.yv = -self.yv * bounce
-
         if not(radius + margin < self.y):
             self.yv = -self.yv * bounce
 
 
 
+    #wheel trace
     def destinationWheel(self):
+
+        #target position
         self.destX = (cos(time.time()*4)+3.14) *100
         self.destY = (sin(time.time()*4)+3.14) *100
 
-
+        #target position limit
         if self.destX >= 800:
             self.destX = 800
         if self.destX <= 0:
@@ -137,13 +142,10 @@ class Ball:
         if self.destY <= 0:
             self.destY = 0
 
-        #(time.time())
-        #print(self.destX)
 
 
-
-# Cue Stick Class
 class CueStick:
+
     def __init__(self, x, y, length, color):
         self.x = x
         self.y = y
@@ -151,31 +153,28 @@ class CueStick:
         self.color = color
         self.tangent = 0
 
-    # Applies force to Cue Ball
+    #Applying force to ball
     def applyForce(self, cueBall, force):
         cueBall.xv += (cueBall.x - self.x)/10
         cueBall.yv += (cueBall.y - self.y)/10
-        #cueBall.angle = self.tangent
-        #cueBall.speed = force
 
-    # Draws Cue Stick on Pygame Window
+    #Draws CueStick
     def draw(self, cuex, cuey):
         self.x, self.y = pygame.mouse.get_pos()
         self.tangent = (degrees(atan2((cuey - self.y), (cuex - self.x))))
         pygame.draw.line(display, white, (cuex + self.length*cos(radians(self.tangent)), cuey + self.length*sin(radians(self.tangent))), (cuex, cuey), 1)
         pygame.draw.line(display, self.color, (self.x, self.y), (cuex, cuey), 3)
 
-    # Applies gravity force to Cue Ball
+    #Applying gravity force to ball
     def applyGrav(self, cueBall, levelBallX, levelBallY, destBall, forceOfGrav, cuex, cuey):
-        #cueBall.angle = -(degrees((atan2((((cueBall.y) - (cueBall.oldy))), (((cueBall.x) - (cueBall.oldx))))) - (atan2((cuex - 400), (cuey - 400)))))
-        #forceOfGrav = forceOfGrav/10
-        #cueBall.speed = sqrt((cueBall.speed**2+2*cueBall.speed*forceOfGrav*cos(cueBall.angle)+forceOfGrav**2))
 
+        #Error calculation and saving previous values
         cueBall.errorpx = cueBall.errorx
         cueBall.errorpy = cueBall.errory
         cueBall.errorx = self.x - cueBall.destX
         cueBall.errory = self.y - cueBall.destY
 
+        #Fuzzyfication x
         if(50>abs(cueBall.errorx)>0):
             Fclosex = -abs(cueBall.errorx)*2+100
         else:
@@ -195,14 +194,19 @@ class CueStick:
         else:
             Ffarx = 0
 
+        #Defuzzification x
         FUZZYX = 0.5*Fclosex + Fmediumx +2 * Ffarx
 
+        #PID x
         slidex = FUZZYX*(Kp*(cueBall.errorx) + Kd*(cueBall.errorx - cueBall.errorpx) + Ki*(cueBall.errxsum))
+
+        #Control limits x
         if slidex > 0.5:
             slidex = 0.5
         if slidex < -0.5:
             slidex = -0.5
 
+        #Fuzzyfication y
         if (50 > abs(cueBall.errory) > 0):
             Fclosey = -abs(cueBall.errory) * 2 + 100
         else:
@@ -222,21 +226,35 @@ class CueStick:
         else:
             Ffary = 0
 
+        #Defuzzification y
         FUZZYY = 0.5 * Fclosey + Fmediumy + 2 * Ffary
-        print(FUZZYY)
 
+        #PID y
         slidey = FUZZYY*(Kp*(cueBall.errory) + Kd*(cueBall.errory - cueBall.errorpy) + Ki*(cueBall.errysum))
+
+        #Control limits y
         if slidey > 0.5:
             slidey = 0.5
         if slidey < -0.5:
             slidey = -0.5
 
+        #Sum of errors
         cueBall.errxsum += cueBall.errorx
         cueBall.errysum += cueBall.errory
 
-        cueBall.xv -= slidex
-        cueBall.yv -= slidey
+        # Acceleration calculation
+        cueBall.xF = cueBall.mass * cueBall.grav * sin(slidex)
+        cueBall.yF = cueBall.mass * cueBall.grav * sin(slidey)
 
+        #Acceleration calculation
+        cueBall.xa = cueBall.xF/cueBall.mass
+        cueBall.ya = cueBall.yF/cueBall.mass
+
+        #Velocity calculation
+        cueBall.xv -= cueBall.xa
+        cueBall.yv -= cueBall.ya
+
+        #Destination point calculating
         levelBallX.x = -slidex*(400/0.5)+400
         levelBallY.y = -slidey*(400/0.5)+400
 
@@ -251,10 +269,6 @@ class CueStick:
 
 
 def border():
-    #pygame.draw.rect(display, gray, (0, 0, 1900, 0))
-    #pygame.draw.rect(display, gray, (0, 0, 30, height))
-    #pygame.draw.rect(display, gray, (width - 30, 0, 1900, height))
-    #pygame.draw.rect(display, gray, (0, height - 30, 1900, height))
     pygame.draw.rect(display, (0, 100, 255), (0, 0, 800, 800), 3)
 
 def close():
@@ -270,14 +284,15 @@ def poolTable():
     tablicacel = []
     tcounter = []
     loop = True
-    #cueBall = Ball(width/2, height/2, 0, 0, 0, white, 0, "cue")
-    cueBall = Ball(700, 700, 0, 0, -15, 0, 0, white, 0, "cue", 0, 0, 0, 0, 0, 0)
+
+
+    cueBall = Ball(700, 700, 0, 0, -15, 0, 0, 0, 0, 0, 0, 0.05, 9.81, white, 0, "cue", 0, 0, 0, 0, 0, 0)
     cueStick = CueStick(0, 0, 100, stickColor)
 
-    levelBallX = Ball(400, 0, 0, 0, 0, 0, 0, red, 0, "cue", 0, 0, 0, 0, 0, 0)
-    levelBallY = Ball(0, 400, 0, 0, 0, 0, 0, red, 0, "cue", 0, 0, 0, 0, 0, 0)
+    levelBallX = Ball(400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.05, 9.81,  red, 0, "cue", 0, 0, 0, 0, 0, 0)
+    levelBallY = Ball(0, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.05, 9.81,  red, 0, "cue", 0, 0, 0, 0, 0, 0)
 
-    destBall = Ball(400, 0, 0, 0, 0, 0, 0, green, 0, "cue", 0, 0, 0, 0, 0, 0)
+    destBall = Ball(400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.05, 9.81,  green, 0, "cue", 0, 0, 0, 0, 0, 0)
 
     while loop:
 
